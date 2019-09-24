@@ -1,9 +1,10 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using System.Threading.Tasks;
 
 using GrainCollection;
 
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using Orleans;
@@ -14,41 +15,33 @@ namespace OrleansTest.Host
 {
     public class Program
     {
-        public static async Task Main()
+        public static Task Main()
         {
-            try
-            {
-                ISiloHost host = await StartSilo();
-
-                Console.WriteLine("Press Enter to terminate...");
-                Console.ReadLine();
-
-                await host.StopAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-            }
-        }
-
-        private static async Task<ISiloHost> StartSilo()
-        {
-            ISiloHostBuilder builder = new SiloHostBuilder()
-                .UseLocalhostClustering() // Use localhost clustering for a single local silo
-                .Configure<ClusterOptions>(options => // Configure ClusterId and ServiceId
+            return new HostBuilder()
+                .UseOrleans(builder =>
                     {
-                        options.ClusterId = "dev";
-                        options.ServiceId = "MyAwesomeService";
+                        builder
+                            .UseLocalhostClustering()
+                            .Configure<ClusterOptions>(options =>
+                                {
+                                    options.ClusterId = "dev";
+                                    options.ServiceId = "MyAwesomeService";
+                                })
+                            .Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback)
+                            .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(HelloGrain).Assembly).WithReferences());
                     })
-                .Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback) // Configure connectivity
-                // Configure logging with any logging framework that supports Microsoft.Extensions.Logging.
-                // In this particular case it logs using the Microsoft.Extensions.Logging.Console package.
-                .ConfigureLogging(logging => logging.AddConsole())
-                .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(HelloGrain).Assembly).WithReferences());
-
-            ISiloHost host = builder.Build();
-            await host.StartAsync();
-            return host;
+                .ConfigureServices(services =>
+                    {
+                        services.Configure<ConsoleLifetimeOptions>(options =>
+                            {
+                                options.SuppressStatusMessages = true;
+                            });
+                    })
+                .ConfigureLogging(builder =>
+                    {
+                        builder.AddConsole();
+                    })
+                .RunConsoleAsync();
         }
     }
 }
