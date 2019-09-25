@@ -30,17 +30,8 @@ namespace OrleansTest.Host
                             .Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback)
                             .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(HelloGrain).Assembly).WithReferences());
                     })
-                .ConfigureServices(services =>
-                    {
-                        services.Configure<ConsoleLifetimeOptions>(options =>
-                            {
-                                options.SuppressStatusMessages = true;
-                            });
-                    })
-                .ConfigureLogging(builder =>
-                    {
-                        builder.AddConsole();
-                    })
+                .ConfigureServices(services => services.Configure<ConsoleLifetimeOptions>(options => options.SuppressStatusMessages = true))
+                .ConfigureLogging(builder => builder.AddConsole())
                 .RunConsoleAsync();
         }
     }
